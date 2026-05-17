@@ -1,0 +1,35 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install gcovr
+        run: sudo apt update && sudo apt install -y gcovr
+
+      - name: Configure CMake with coverage
+        run: |
+          rm -rf build
+          cmake -B build -DENABLE_COVERAGE=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run tests
+        run: cd build && ctest --output-on-failure
+
+      - name: Generate coverage report (cobertura)
+        run: |
+          cd build
+          gcovr --gcov-executable gcov --root .. --cobertura --output coverage.xml
+
+      - name: Upload to Coveralls
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/coverage.xml
+          format: cobertura
